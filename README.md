@@ -1,16 +1,11 @@
-# tugasku
+# TugasKu 📚
 
-A new Flutter project.
+TugasKu adalah aplikasi manajemen tugas berbasis Flutter yang dirancang untuk membantu pengguna, terutama pelajar dan mahasiswa, dalam mengatur jadwal belajar, mencatat tugas, dan menjaga produktivitas harian.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## ✨ Fitur Utama
+- ✅ Manajemen Tugas: Tambahkan, lihat, dan kelola tugas berdasarkan kategori.
+- 📅 Tampilan Kalender: Lihat dan atur tugas berdasarkan tanggal.
+- 🔥 Fitur Streak: Pantau konsistensi belajar setiap hari.
+- ⏱️ Pomodoro Timer: Gunakan teknik Pomodoro (25+5 menit) untuk meningkatkan fokus belajar.
+- 🔔 Pengingat & Notifikasi: Ingatkan tugas sebelum deadline.
+- ⚙️ Halaman Pengaturan: Atur preferensi akun dan notifikasi.
