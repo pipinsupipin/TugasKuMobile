@@ -7,6 +7,7 @@ import 'package:tugasku/pages/auth/register_page.dart';
 import 'package:tugasku/logo.dart';
 import 'package:tugasku/widgets/common/bottom_tab_bar.dart';
 import 'package:tugasku/widgets/common/button_widget.dart';
+import 'package:tugasku/services/api_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,6 +17,18 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final ApiService _apiService = ApiService();
+  bool _isLoading = false;
+  
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,7 +40,7 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               // Logo
               LogoTugasKu(),
-
+      
               // Greetings
               Column(
                 children: [
@@ -80,6 +93,7 @@ class _LoginPageState extends State<LoginPage> {
                           child: Padding(
                             padding: const EdgeInsets.only(left: 20.0),
                             child: TextField(
+                              controller: _emailController,
                               decoration: InputDecoration(
                                 border: InputBorder.none,
                                 hintText: 'Email',
@@ -110,6 +124,7 @@ class _LoginPageState extends State<LoginPage> {
                           child: Padding(
                             padding: const EdgeInsets.only(left: 20.0),
                             child: TextField(
+                              controller: _passwordController,
                               obscureText: true,
                               decoration: InputDecoration(
                                 border: InputBorder.none,
@@ -152,15 +167,36 @@ class _LoginPageState extends State<LoginPage> {
                       // Login Button
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                        child: ButtonWidget(
+                        child: _isLoading
+                        ? Center(child: CircularProgressIndicator())
+                        : ButtonWidget(
                           text: 'Masuk',
-                          onTap: (){
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (builder){
-                                return BottomTabBar(selectedIndex: 0);
-                              })
+                          onTap: () async {
+                            setState(() {
+                              _isLoading = true;
+                            });
+      
+                            final result = await _apiService.login(
+                              _emailController.text,
+                              _passwordController.text,
                             );
+      
+                            setState(() {
+                              _isLoading = false;
+                            });
+      
+                            if (result['success']) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (builder){
+                                  return BottomTabBar(selectedIndex: 0);
+                                })
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(result['message']))
+                              );
+                            }
                           },
                         ),
                       ),
@@ -169,7 +205,7 @@ class _LoginPageState extends State<LoginPage> {
                 ],
               ),
               SizedBox(height: 40),
-
+      
               // Register Button
               GestureDetector(
                 onTap: () {

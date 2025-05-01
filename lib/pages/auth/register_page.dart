@@ -5,6 +5,8 @@ import 'package:tugasku/constants.dart';
 import 'package:tugasku/pages/auth/login_page.dart';
 import 'package:tugasku/logo.dart';
 import 'package:tugasku/widgets/common/button_widget.dart';
+import 'package:tugasku/widgets/common/bottom_tab_bar.dart';
+import 'package:tugasku/services/api_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -14,6 +16,22 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+  final ApiService _apiService = ApiService();
+  bool _isLoading = false;
+  
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,35 +76,76 @@ class _RegisterPageState extends State<RegisterPage> {
                   Gap(24),
 
                   // Full Name Textfield
-                  _buildTextField('Nama Lengkap'),
+                  _buildTextField('Nama Lengkap', _nameController),
                   Gap(15),
                   // Email Textfield
-                  _buildTextField('Email'),
+                  _buildTextField('Email', _emailController),
                   Gap(15),
                   // Password Textfield
-                  _buildTextField('Kata Sandi', obscureText: true),
+                  _buildTextField('Kata Sandi', _passwordController, obscureText: true),
                   Gap(15),
                   // Confirm Password Textfield
-                  _buildTextField('Ulangi Kata Sandi', obscureText: true),
+                  _buildTextField('Ulangi Kata Sandi', _confirmPasswordController, obscureText: true),
                   Gap(40),
 
                   // Register Button
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                    child: ButtonWidget(
-                      text: 'Daftar',
-                      onTap: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (builder) => LoginPage()),
-                        );
-                      },
+                    child:_isLoading
+                    ? Center(child: CircularProgressIndicator())
+                    : ButtonWidget(
+                        text: 'Daftar',
+                        onTap: () async {
+                          // Validasi input
+                          if (_nameController.text.isEmpty ||
+                              _emailController.text.isEmpty ||
+                              _passwordController.text.isEmpty ||
+                              _confirmPasswordController.text.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Semua data harus diisi')),
+                            );
+                            return;
+                          }
+                          
+                          if (_passwordController.text != _confirmPasswordController.text) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Kata sandi dan konfirmasi kata sandi harus sama')),
+                            );
+                            return;
+                          }
+                          
+                          setState(() {
+                            _isLoading = true;
+                          });
+                          
+                          final result = await _apiService.register(
+                            _nameController.text,
+                            _emailController.text,
+                            _passwordController.text,
+                            _confirmPasswordController.text,
+                          );
+                          
+                          setState(() {
+                            _isLoading = false;
+                          });
+                          
+                          if (result['success']) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (builder){
+                                return BottomTabBar(selectedIndex: 0);
+                              })
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(result['message'])),
+                            );
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 40),
+                  ],
+                ),
 
               // Login Button
               GestureDetector(
@@ -114,7 +173,7 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _buildTextField(String hintText, {bool obscureText = false}) {
+  Widget _buildTextField(String hintText, controller, {bool obscureText = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
       child: Container(
@@ -134,6 +193,7 @@ class _RegisterPageState extends State<RegisterPage> {
         child: Padding(
           padding: const EdgeInsets.only(left: 20.0),
           child: TextField(
+            controller: controller,
             obscureText: obscureText,
             decoration: InputDecoration(
               border: InputBorder.none,

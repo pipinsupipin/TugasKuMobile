@@ -1,0 +1,2 @@
+/Users/kevin/Documents/Unair/Semester 4/Pmob Prak/TugasKu/tugasku/android/app/.cxx/RelWithDebInfo/6f5b1w6h/x86_64/CMakeFiles/edit_cache.dir
+/Users/kevin/Documents/Unair/Semester 4/Pmob Prak/TugasKu/tugasku/android/app/.cxx/RelWithDebInfo/6f5b1w6h/x86_64/CMakeFiles/rebuild_cache.dir

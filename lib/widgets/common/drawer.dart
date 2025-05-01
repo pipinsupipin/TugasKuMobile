@@ -5,6 +5,7 @@ import 'package:tugasku/constants.dart';
 import 'package:tugasku/logo.dart';
 import 'package:tugasku/pages/auth/login_page.dart';
 import 'package:tugasku/widgets/common/bottom_tab_bar.dart';
+import 'package:tugasku/utils/logout_helper.dart';
 
 class SideMenu extends StatelessWidget {
   const SideMenu({super.key});
@@ -64,7 +65,6 @@ class SideMenu extends StatelessWidget {
                   icon: LucideIcons.logOut, 
                   text: 'Keluar', 
                   onTap: () => _navigateTo(context, const LoginPage()),
-                  // color: Colors.red,
                 ),
               ],
             ),
@@ -74,21 +74,29 @@ class SideMenu extends StatelessWidget {
     );
   }
 
-  Widget _buildDrawerItem(BuildContext context, {
+  Widget _buildDrawerItem(
+    BuildContext context, {
     required IconData icon,
     required String text,
-    required VoidCallback onTap,
-    Color color = Colors.black,
+    required Function? onTap,
+    Color? color,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        tileColor: Colors.grey.shade100,
-        leading: Icon(icon, color: primaryColor, size: 24),
-        title: Text(text, style: GoogleFonts.inter(fontWeight: FontWeight.w500, color: color)),
-        onTap: onTap,
-      ),
+    if (text == 'Keluar') {
+      return ListTile(
+        leading: Icon(icon, color: Colors.red),
+        title: Text(text, style: GoogleFonts.inter(color: color)),
+        onTap: () {
+
+          Navigator.pop(context);
+          LogoutHelper.showLogoutDialog(context);
+        },
+      );
+    }
+    
+    return ListTile(
+      leading: Icon(icon, color: primaryColor),
+      title: Text(text, style: GoogleFonts.inter(color: color)),
+      onTap: onTap != null ? () => onTap() : null,
     );
   }
 

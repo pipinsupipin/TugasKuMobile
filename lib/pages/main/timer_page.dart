@@ -14,8 +14,8 @@ class TimerPage extends StatefulWidget {
 }
 
 class _TimerPageState extends State<TimerPage> {
-  static const int focusDuration = 25 * 60;
-  static const int breakDuration = 5 * 60;
+  static const int focusDuration = 6;
+  static const int breakDuration = 5;
 
   int remainingSeconds = focusDuration;
   bool isRunning = false;

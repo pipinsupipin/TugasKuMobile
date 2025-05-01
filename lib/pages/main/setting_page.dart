@@ -4,9 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:tugasku/constants.dart';
-import 'package:tugasku/pages/auth/login_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
+import 'package:tugasku/utils/logout_helper.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -258,28 +258,5 @@ void _showChangePasswordDialog(BuildContext context) {
 }
 
 void _showLogoutDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text("Konfirmasi", style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-      content: Text("Apakah Anda yakin ingin keluar?", style: GoogleFonts.inter()),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text("Batal", style: GoogleFonts.inter(color: blackColor.withValues(alpha: 0.7))),
-        ),
-        TextButton(
-          onPressed: () {
-            Navigator.pop(context);
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => LoginPage()),
-            );
-          },
-          child: Text("Keluar", style: GoogleFonts.inter(color: Colors.red)),
-        ),
-      ],
-    ),
-  );
+  LogoutHelper.showLogoutDialog(context, blackColor: blackColor);
 }
