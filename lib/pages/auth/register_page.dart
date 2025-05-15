@@ -4,9 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tugasku/constants.dart';
 import 'package:tugasku/pages/auth/login_page.dart';
 import 'package:tugasku/logo.dart';
+import 'package:tugasku/utils/flushbar_helper.dart';
 import 'package:tugasku/widgets/common/button_widget.dart';
 import 'package:tugasku/widgets/common/bottom_tab_bar.dart';
-import 'package:tugasku/services/api_service.dart';
+import 'package:tugasku/services/auth_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -19,10 +20,11 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  final ApiService _apiService = ApiService();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+  final AuthService _apiService = AuthService();
   bool _isLoading = false;
-  
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -82,70 +84,88 @@ class _RegisterPageState extends State<RegisterPage> {
                   _buildTextField('Email', _emailController),
                   Gap(15),
                   // Password Textfield
-                  _buildTextField('Kata Sandi', _passwordController, obscureText: true),
+                  _buildTextField('Kata Sandi', _passwordController,
+                      obscureText: true),
                   Gap(15),
                   // Confirm Password Textfield
-                  _buildTextField('Ulangi Kata Sandi', _confirmPasswordController, obscureText: true),
+                  _buildTextField(
+                      'Ulangi Kata Sandi', _confirmPasswordController,
+                      obscureText: true),
                   Gap(40),
 
                   // Register Button
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                    child:_isLoading
-                    ? Center(child: CircularProgressIndicator())
-                    : ButtonWidget(
-                        text: 'Daftar',
-                        onTap: () async {
-                          // Validasi input
-                          if (_nameController.text.isEmpty ||
-                              _emailController.text.isEmpty ||
-                              _passwordController.text.isEmpty ||
-                              _confirmPasswordController.text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Semua data harus diisi')),
-                            );
-                            return;
-                          }
-                          
-                          if (_passwordController.text != _confirmPasswordController.text) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Kata sandi dan konfirmasi kata sandi harus sama')),
-                            );
-                            return;
-                          }
-                          
-                          setState(() {
-                            _isLoading = true;
-                          });
-                          
-                          final result = await _apiService.register(
-                            _nameController.text,
-                            _emailController.text,
-                            _passwordController.text,
-                            _confirmPasswordController.text,
-                          );
-                          
-                          setState(() {
-                            _isLoading = false;
-                          });
-                          
-                          if (result['success']) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (builder){
-                                return BottomTabBar(selectedIndex: 0);
-                              })
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(result['message'])),
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+                    child: _isLoading
+                        ? Center(child: CircularProgressIndicator())
+                        : ButtonWidget(
+                            text: 'Daftar',
+                            onTap: () async {
+                              // Validasi input
+                              if (_nameController.text.isEmpty ||
+                                  _emailController.text.isEmpty ||
+                                  _passwordController.text.isEmpty ||
+                                  _confirmPasswordController.text.isEmpty) {
+                                showCustomSnackbar(
+                                  context: context,
+                                  message: 'Semua data harus diisi',
+                                  isSuccess: false,
+                                );
+                                return;
+                              }
+
+                              if (_passwordController.text !=
+                                  _confirmPasswordController.text) {
+                                showCustomSnackbar(
+                                  context: context,
+                                  message:
+                                      'Kata sandi dan konfirmasi kata sandi harus sama',
+                                  isSuccess: false,
+                                );
+                                return;
+                              }
+
+                              setState(() {
+                                _isLoading = true;
+                              });
+
+                              final result = await _apiService.register(
+                                _nameController.text,
+                                _emailController.text,
+                                _passwordController.text,
+                                _confirmPasswordController.text,
+                              );
+
+                              setState(() {
+                                _isLoading = false;
+                              });
+
+                              if (result['success']) {
+                                showCustomSnackbar(
+                                  context: context,
+                                  message: 'Registrasi berhasil!',
+                                  isSuccess: true,
+                                );
+                                // Navigasi setelah sukses
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (builder) {
+                                    return BottomTabBar(selectedIndex: 0);
+                                  }),
+                                );
+                              } else {
+                                showCustomSnackbar(
+                                  context: context,
+                                  message:
+                                      result['message'] ?? 'Registrasi gagal',
+                                  isSuccess: false,
+                                );
+                              }
+                            },
+                          ),
+                  ),
+                ],
+              ),
 
               // Login Button
               GestureDetector(
@@ -173,7 +193,8 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _buildTextField(String hintText, controller, {bool obscureText = false}) {
+  Widget _buildTextField(String hintText, controller,
+      {bool obscureText = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 25),
       child: Container(

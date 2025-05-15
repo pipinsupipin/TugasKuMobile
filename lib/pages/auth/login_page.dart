@@ -7,7 +7,7 @@ import 'package:tugasku/pages/auth/register_page.dart';
 import 'package:tugasku/logo.dart';
 import 'package:tugasku/widgets/common/bottom_tab_bar.dart';
 import 'package:tugasku/widgets/common/button_widget.dart';
-import 'package:tugasku/services/api_service.dart';
+import 'package:tugasku/services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,7 +19,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final ApiService _apiService = ApiService();
+  final AuthService _apiService = AuthService();
   bool _isLoading = false;
   
   @override
@@ -179,6 +179,7 @@ class _LoginPageState extends State<LoginPage> {
                             final result = await _apiService.login(
                               _emailController.text,
                               _passwordController.text,
+                              context
                             );
       
                             setState(() {
@@ -191,10 +192,6 @@ class _LoginPageState extends State<LoginPage> {
                                 MaterialPageRoute(builder: (builder){
                                   return BottomTabBar(selectedIndex: 0);
                                 })
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(result['message']))
                               );
                             }
                           },

@@ -58,24 +58,28 @@ class _BottomTabBarState extends State<BottomTabBar> {
         child: currentScreen,
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: primaryColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30)
-        ),
-        child: Icon(LucideIcons.plus, color: fullWhite),
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => AddTaskOverlay(),
-          );
-        },
-      ),
+          backgroundColor: primaryColor,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          child: Icon(LucideIcons.plus, color: fullWhite),
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => AddTaskOverlay(
+                onTaskAdded: () {
+                  // Panggil refresh pada kedua halaman secara langsung
+                  HomePageState.refreshData();
+                  KalenderPageState.refreshData();
+                },
+              ),
+            );
+          }),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
         color: fullWhite,
-        shape: CircularNotchedRectangle(),
+        shape: const CircularNotchedRectangle(),
         notchMargin: 10,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -116,7 +120,7 @@ class _BottomTabBarState extends State<BottomTabBar> {
                 ],
               ),
             ),
-            SizedBox(width: 50),
+            const SizedBox(width: 50),
             MaterialButton(
               minWidth: 50,
               onPressed: () {

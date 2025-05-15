@@ -37,7 +37,7 @@ Future initIntroduction() async {
 
 Future checkLoginStatus() async {
   final prefs = await SharedPreferences.getInstance();
-  String? token = prefs.getString('token'); // Pastikan token disimpan saat login
+  String? token = prefs.getString('token');
   if (token != null && token.isNotEmpty) {
     isLoggedIn = true;
   }

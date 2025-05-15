@@ -4,6 +4,8 @@ import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:tugasku/constants.dart';
+import 'package:tugasku/services/auth_service.dart';
+import 'package:tugasku/widgets/common/custom_app_bar.dart';
 import 'package:tugasku/widgets/common/drawer.dart';
 
 class TimerPage extends StatefulWidget {
@@ -14,14 +16,47 @@ class TimerPage extends StatefulWidget {
 }
 
 class _TimerPageState extends State<TimerPage> {
-  static const int focusDuration = 6;
-  static const int breakDuration = 5;
+  final AuthService _userService = AuthService();
+  String userName = 'User';
+  bool isLoading = true;
+  String? profilePicture;
+
+  static const int focusDuration = 25 * 60;
+  static const int breakDuration = 5 * 60;
 
   int remainingSeconds = focusDuration;
   bool isRunning = false;
   bool isBreakTime = false;
   int completedSessions = 0;
   Timer? timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchUserData() async {
+    try {
+      final userData = await _userService.getUserData();
+      setState(() {
+        userName = userData['name'] ?? 'User';
+        profilePicture = userData['profile_picture'];
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      debugPrint('Error fetching user data: $e');
+    }
+  }
 
   void startTimer() {
     if (timer == null || !timer!.isActive) {
@@ -66,43 +101,7 @@ class _TimerPageState extends State<TimerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: Builder(
-          builder: (context) => Padding(
-            padding: const EdgeInsets.only(left: 25),
-            child: IconButton(
-              icon: Icon(LucideIcons.menu),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            ),
-          ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 25),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Halo, Kevin!',
-                  style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Gap(16),
-                CircleAvatar(
-                  radius: 20,
-                  backgroundImage: AssetImage(
-                    'assets/profile.jpg'
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      appBar: const CustomAppBar(),
       drawer: SideMenu(),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 25.0),
@@ -115,7 +114,7 @@ class _TimerPageState extends State<TimerPage> {
                 style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w600, color: Colors.black),
                 children: [
                   TextSpan(
-                    text: isBreakTime ? "Istirahat!" : "\nKevin!",
+                    text: isBreakTime ? "Istirahat!" : "\n${isLoading ? 'User' : userName}!",
                     style: GoogleFonts.inter(
                       fontSize: 32,
                       fontWeight: FontWeight.w600,

@@ -88,7 +88,7 @@ class SideMenu extends StatelessWidget {
         onTap: () {
 
           Navigator.pop(context);
-          LogoutHelper.showLogoutDialog(context);
+          LogoutHelper.showCustomLogoutDialog(context: context);
         },
       );
     }
