@@ -9,7 +9,7 @@ import 'package:tugasku/utils/flushbar_helper.dart';
 // import 'package:tugasku/models/kategori.dart';
 
 class AuthService {
-  final String baseUrl = 'http://localhost:8000/api';
+  final String baseUrl = 'https://tugas-ku.cloud/api';
   // final ApiService _apiService = ApiService();
 
   // Menyimpan token
@@ -58,36 +58,36 @@ class AuthService {
     }
   }
 
-   // Update user profile
-  Future<Map<String, dynamic>> updateProfile({
-    required String name, 
-    File? profilePicture
-  }) async {
+  // Update user profile
+  Future<Map<String, dynamic>> updateProfile(
+      {required String name, File? profilePicture}) async {
     try {
-      // If there's a profile picture to upload, use multipart request
+      final headers = await _getHeaders();
+
+      // Gunakan multipart request dengan metode POST (bukan PUT)
       if (profilePicture != null) {
-        final headers = await _getHeaders();
-        // Remove Content-Type as it will be set by multipart
+        // Remove Content-Type karena akan diatur oleh multipart
         headers.remove('Content-Type');
-        
-        // Create multipart request - try PUT method since POST is getting 405
+
+        // Buat multipart request dengan metode POST
         final request = http.MultipartRequest(
-          'PUT',  // Changed to PUT since POST gave 405 error
+          'POST', // Metode POST karena sudah terbukti works di backend
           Uri.parse('$baseUrl/user/profile'),
         );
-        
-        // Add headers including Authorization
+
+        // Tambahkan headers termasuk Authorization
         request.headers.addAll(headers);
-        
-        // Add fields
+
+        // Tambahkan field name
         request.fields['name'] = name;
-        
-        // Add the file
+
+        // Tambahkan file image
         final fileExtension = profilePicture.path.split('.').last.toLowerCase();
-        final mimeType = 'image/${fileExtension == 'jpg' ? 'jpeg' : fileExtension}';
-        
+        final mimeType =
+            'image/${fileExtension == 'jpg' ? 'jpeg' : fileExtension}';
+
         debugPrint('Adding file with mime type: $mimeType');
-        
+
         request.files.add(
           await http.MultipartFile.fromPath(
             'profile_picture',
@@ -95,58 +95,57 @@ class AuthService {
             contentType: MediaType.parse(mimeType),
           ),
         );
-        
-        // Send the request
+
+        // Kirim request
         debugPrint('Sending multipart request...');
         final streamedResponse = await request.send();
         final response = await http.Response.fromStream(streamedResponse);
-        
+
         debugPrint('Response status: ${response.statusCode}');
         debugPrint('Response body: ${response.body}');
-        
+
         if (response.statusCode == 200) {
           return jsonDecode(response.body);
         } else {
-          throw Exception('Failed to update profile: ${response.statusCode} - ${response.body}');
+          throw Exception(
+              'Failed to update profile: ${response.statusCode} - ${response.body}');
         }
       }
-      // If no profile picture, use regular JSON request
+      // Jika tidak ada profile picture, gunakan POST biasa
       else {
-        // Try PUT method since POST gave 405 error
-        final response = await http.put(
+        final response = await http.post(
           Uri.parse('$baseUrl/user/profile'),
-          headers: await _getHeaders(),
+          headers: headers,
           body: jsonEncode({
             'name': name,
           }),
         );
-        
+
         debugPrint('Response status: ${response.statusCode}');
         debugPrint('Response body: ${response.body}');
-        
+
         if (response.statusCode == 200) {
           return jsonDecode(response.body);
         } else {
-          throw Exception('Failed to update profile: ${response.statusCode} - ${response.body}');
+          throw Exception(
+              'Failed to update profile: ${response.statusCode} - ${response.body}');
         }
       }
     } catch (e) {
       debugPrint('Error occurred while updating profile: $e');
-      throw Exception('Error occurred while updating profile: $e');
+      throw Exception('Error updating profile: $e');
     }
   }
-  
-  // Change password
+
+// Change password
   Future<Map<String, dynamic>> changePassword({
     required String currentPassword,
     required String newPassword,
     required String newPasswordConfirmation,
   }) async {
     try {
-      // Try different HTTP methods to see which one works for your API
-      
-      // First try PUT since that's what your code snippet had
-      final response = await http.put(
+      // Gunakan metode POST untuk konsistensi dengan backend
+      final response = await http.post(
         Uri.parse('$baseUrl/user/password'),
         headers: await _getHeaders(),
         body: jsonEncode({
@@ -155,44 +154,23 @@ class AuthService {
           'new_password_confirmation': newPasswordConfirmation,
         }),
       );
-      
+
       debugPrint('Response status: ${response.statusCode}');
       debugPrint('Response body: ${response.body}');
-      
+
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
-      } else if (response.statusCode == 405) {
-        // If we get a 405 Method Not Allowed error, try with POST
-        debugPrint('PUT method not allowed, trying POST method...');
-        
-        final postResponse = await http.post(
-          Uri.parse('$baseUrl/user/password'),
-          headers: await _getHeaders(),
-          body: jsonEncode({
-            'current_password': currentPassword,
-            'new_password': newPassword,
-            'new_password_confirmation': newPasswordConfirmation,
-          }),
-        );
-        
-        debugPrint('POST Response status: ${postResponse.statusCode}');
-        debugPrint('POST Response body: ${postResponse.body}');
-        
-        if (postResponse.statusCode == 200) {
-          return jsonDecode(postResponse.body);
-        } else {
-          throw Exception('Failed to change password: ${postResponse.statusCode} - ${postResponse.body}');
-        }
       } else {
-        throw Exception('Failed to change password: ${response.statusCode} - ${response.body}');
+        throw Exception(
+            'Failed to change password: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       debugPrint('Error occurred while changing password: $e');
-      throw Exception('Error occurred while changing password: $e');
+      throw Exception('Error changing password: $e');
     }
   }
 
-  // Login
+// Login
   Future<Map<String, dynamic>> login(
       String email, String password, BuildContext context) async {
     try {
@@ -208,36 +186,44 @@ class AuthService {
         }),
       );
 
-      // Parse response body jika bukan hanya token
       Map<String, dynamic> responseData = {};
       if (response.body.isNotEmpty) {
         try {
           responseData = jsonDecode(response.body);
         } catch (e) {
-          // Jika response hanya berupa token (string), tidak perlu di-decode
+          // Jika gagal parsing JSON, asumsikan response tidak valid
+          responseData = {};
         }
       }
 
       if (response.statusCode == 200) {
-        // Jika respons hanya berupa token dalam bentuk teks
-        String token = response.body;
-        await saveToken(token);
-        // List<Kategori> categories = await _apiService.getKategoriTugas();
+        // ✅ Ambil token dan user
+        final token = responseData['token'];
+        final user = responseData['user'];
+        final role = user['role'];
+
+        await saveToken(
+            token); // Simpan token ke local storage atau secure storage
+        // Bisa juga: await saveUserData(user);
+
         showCustomSnackbar(
           context: context,
           message: 'Login berhasil! Selamat datang kembali.',
           isSuccess: true,
         );
-        return {'success': true, 'token': token};
+
+        return {
+          'success': true,
+          'token': token,
+          'role': role,
+          'user': user,
+        };
       } else if (response.statusCode == 422 || response.statusCode == 401) {
-        // Handle validasi error dan credential error (keduanya bisa memiliki format yang sama)
         String errorMessage = 'Login gagal';
 
-        // Periksa jenis error dan ubah ke pesan yang lebih user-friendly
         if (responseData.containsKey('errors')) {
           final errors = responseData['errors'] as Map<String, dynamic>;
 
-          // Cek jika error tentang kredensial salah
           if (errors.containsKey('email') &&
               errors['email'] is List &&
               errors['email'].isNotEmpty &&
@@ -246,32 +232,24 @@ class AuthService {
                   .contains('credentials are incorrect')) {
             errorMessage =
                 'Email atau kata sandi salah. Silakan periksa kembali.';
-          }
-          // Cek jika error tentang password kosong
-          else if (errors.containsKey('password') &&
+          } else if (errors.containsKey('password') &&
               errors['password'] is List &&
               errors['password'].isNotEmpty &&
               errors['password'][0]
                   .toString()
                   .contains('password field is required')) {
             errorMessage = 'Kata sandi tidak boleh kosong.';
-          }
-          // Cek jika error tentang email kosong
-          else if (errors.containsKey('email') &&
+          } else if (errors.containsKey('email') &&
               errors['email'] is List &&
               errors['email'].isNotEmpty &&
               errors['email'][0]
                   .toString()
                   .contains('email field is required')) {
             errorMessage = 'Email tidak boleh kosong.';
-          }
-          // Jika ada multiple errors, periksa keduanya
-          else if (errors.containsKey('email') &&
+          } else if (errors.containsKey('email') &&
               errors.containsKey('password')) {
             errorMessage = 'Email dan kata sandi tidak boleh kosong.';
-          }
-          // Fallback ke error pertama jika tidak ada kondisi khusus
-          else if (errors.isNotEmpty) {
+          } else if (errors.isNotEmpty) {
             String fieldName = errors.keys.first;
             if (errors[fieldName] is List && errors[fieldName].isNotEmpty) {
               errorMessage = errors[fieldName][0];
@@ -290,7 +268,6 @@ class AuthService {
         };
       } else {
         String errorMessage = 'Login gagal. Terjadi kesalahan pada server.';
-
         if (responseData.containsKey('message')) {
           errorMessage = responseData['message'];
         }

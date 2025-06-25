@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:tugasku/constants.dart';
 import 'package:tugasku/models/tugas.dart';
-// import 'package:tugasku/widgets/common/button_widget.dart';
 import 'package:tugasku/services/crud_service.dart';
 import 'package:tugasku/widgets/overlay/detail_task_overlay.dart';
 
@@ -13,6 +13,7 @@ class TugasWidget extends StatefulWidget {
   final void Function(Tugas) onTugasUpdated;
 
   const TugasWidget({
+    super.key,
     required this.tugas,
     required this.onTugasUpdated,
   });
@@ -33,10 +34,9 @@ class _TugasWidgetState extends State<TugasWidget> {
   }
 
   Future<void> getTugasById(int id) async {
+    HapticFeedback.lightImpact();
+    
     try {
-      // Tugas detailTugas = await _apiService.getTugasById(id);
-
-      // Buka overlay dengan data yang diambil
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
@@ -47,12 +47,11 @@ class _TugasWidgetState extends State<TugasWidget> {
         ),
       );
     } catch (e) {
-      print('Error: $e');
+      debugPrint('Error: $e');
     }
   }
 
   String formatWaktu(DateTime waktu) {
-    // List nama hari dalam bahasa Indonesia
     List<String> hari = [
       'Minggu',
       'Senin',
@@ -63,7 +62,6 @@ class _TugasWidgetState extends State<TugasWidget> {
       'Sabtu'
     ];
 
-    // List nama bulan dalam bahasa Indonesia
     List<String> bulan = [
       'Januari',
       'Februari',
@@ -79,7 +77,6 @@ class _TugasWidgetState extends State<TugasWidget> {
       'Desember'
     ];
 
-    // Ambil nama hari, tanggal, bulan, dan waktu
     String namaHari = hari[waktu.weekday % 7];
     String tanggal = waktu.day.toString().padLeft(2, '0');
     String namaBulan = bulan[waktu.month - 1];
@@ -154,9 +151,12 @@ class _TugasWidgetState extends State<TugasWidget> {
                         size: 20,
                       ),
                       onPressed: () async {
+                        HapticFeedback.selectionClick();
+                        
                         setState(() {
                           _isLoading = true;
                         });
+                        
                         bool newStatus = !isChecked;
                         Tugas updatedTugas =
                             widget.tugas.copyWith(isCompleted: newStatus);
@@ -165,7 +165,7 @@ class _TugasWidgetState extends State<TugasWidget> {
                               await _apiService.updateTugas(updatedTugas);
                           widget.onTugasUpdated(result);
                         } catch (e) {
-                          print('Error updating task: $e');
+                          debugPrint('Error updating task: $e');
                         } finally {
                           setState(() {
                             _isLoading = false;
@@ -194,26 +194,31 @@ class _TugasWidgetState extends State<TugasWidget> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Row(
-                        children: [
-                          Icon(
-                            LucideIcons.clock4,
-                            size: 14,
-                            color: blackColor.withValues(alpha: 0.5),
-                          ),
-                          const Gap(5),
-                          Text(
-                            waktu,
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(
+                              LucideIcons.clock4,
+                              size: 14,
                               color: blackColor.withValues(alpha: 0.5),
-                              decoration:
-                                  isChecked ? TextDecoration.lineThrough : null,
                             ),
-                          ),
-                          const Gap(15),
-                        ],
+                            const Gap(5),
+                            Expanded(
+                              child: Text(
+                                waktu,
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: blackColor.withValues(alpha: 0.5),
+                                  decoration:
+                                      isChecked ? TextDecoration.lineThrough : null,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      const Gap(8),
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),

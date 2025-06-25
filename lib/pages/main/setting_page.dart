@@ -1,15 +1,18 @@
-// setting_page.dart
+// setting_page.dart (enhanced professional version)
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:tugasku/constants.dart';
+import 'package:tugasku/widgets/common/custom_app_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'package:tugasku/utils/logout_helper.dart';
 import 'package:tugasku/services/auth_service.dart';
 import 'package:tugasku/utils/flushbar_helper.dart';
+import 'package:tugasku/widgets/common/drawer.dart';
 
 class SettingPage extends StatefulWidget {
   const SettingPage({super.key});
@@ -18,7 +21,8 @@ class SettingPage extends StatefulWidget {
   State<SettingPage> createState() => _SettingPageState();
 }
 
-class _SettingPageState extends State<SettingPage> {
+class _SettingPageState extends State<SettingPage> 
+    with SingleTickerProviderStateMixin {
   final AuthService _authService = AuthService();
   bool _notificationsEnabled = true;
   File? _selectedImage;
@@ -26,17 +30,59 @@ class _SettingPageState extends State<SettingPage> {
   String _userName = "";
   String _userEmail = "";
   String? _profilePictureUrl;
+  
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _initializeAnimation();
     _loadUserData();
   }
 
+  void _initializeAnimation() {
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
+
   void _launchURL() async {
-    const url = 'link';
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    const url = 'https://tugas-ku.cloud';
+    try {
+      if (await canLaunchUrl(Uri.parse(url))) {
+        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          showCustomSnackbar(
+            context: context,
+            message: "Tidak dapat membuka link",
+            isSuccess: false,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showCustomSnackbar(
+          context: context,
+          message: "Error: ${e.toString()}",
+          isSuccess: false,
+        );
+      }
     }
   }
 
@@ -49,10 +95,11 @@ class _SettingPageState extends State<SettingPage> {
       final userData = await _authService.getUserData();
       setState(() {
         _userName = userData['name'] ?? "User";
-        _userEmail = userData['email'] ?? "user@example.com";
+        _userEmail = userData['email'] ?? "user@email.com";
         _profilePictureUrl = userData['profile_picture'];
         _isLoading = false;
       });
+      _fadeController.forward();
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -68,6 +115,7 @@ class _SettingPageState extends State<SettingPage> {
   }
 
   Future<void> _pickImage() async {
+    HapticFeedback.lightImpact();
     try {
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(
@@ -82,7 +130,6 @@ class _SettingPageState extends State<SettingPage> {
           _selectedImage = File(pickedFile.path);
         });
 
-        // Show loading indicator
         if (mounted) {
           showCustomSnackbar(
             context: context,
@@ -91,7 +138,6 @@ class _SettingPageState extends State<SettingPage> {
           );
         }
 
-        // Update profile with new image
         await _updateProfile(_userName, _selectedImage);
       }
     } catch (e) {
@@ -110,33 +156,17 @@ class _SettingPageState extends State<SettingPage> {
       setState(() {
         _isLoading = true;
       });
-
-      // Debugging: print what we're sending
-      debugPrint('Updating profile with name: $name');
-      debugPrint('Profile image path: ${profileImage?.path}');
       
-      // Show debug information
-      if (mounted) {
-        showCustomSnackbar(
-          context: context,
-          message: "Memperbarui profil dengan nama: $name",
-          isSuccess: true,
-        );
-      }
-
       final result = await _authService.updateProfile(
         name: name,
         profilePicture: profileImage,
       );
 
-      // Debugging: print the response
-      debugPrint('Update profile response: $result');
-
       setState(() {
         _userName = result['user']['name'];
         _profilePictureUrl = result['user']['profile_picture'];
         _isLoading = false;
-        _selectedImage = null; // Reset selected image after upload
+        _selectedImage = null;
       });
 
       if (mounted) {
@@ -157,18 +187,12 @@ class _SettingPageState extends State<SettingPage> {
           message: "Gagal memperbarui profil: ${e.toString()}",
           isSuccess: false,
         );
-        
-        // Print detailed debugging info
-        debugPrint('===== PROFILE UPDATE ERROR =====');
-        debugPrint(e.toString());
-        debugPrint('================================');
       }
     }
   }
 
   Future<void> _changePassword(String currentPassword, String newPassword,
       String confirmPassword) async {
-    // Validate passwords match
     if (newPassword != confirmPassword) {
       showCustomSnackbar(
         context: context,
@@ -182,19 +206,7 @@ class _SettingPageState extends State<SettingPage> {
       setState(() {
         _isLoading = true;
       });
-
-      // Debugging: print what we're sending (without exposing actual passwords)
-      debugPrint('Changing password...');
       
-      // Show debug information
-      if (mounted) {
-        showCustomSnackbar(
-          context: context,
-          message: "Memperbarui kata sandi...",
-          isSuccess: true,
-        );
-      }
-
       await _authService.changePassword(
         currentPassword: currentPassword,
         newPassword: newPassword,
@@ -223,11 +235,6 @@ class _SettingPageState extends State<SettingPage> {
           message: "Gagal memperbarui kata sandi: ${e.toString()}",
           isSuccess: false,
         );
-        
-        // Print detailed debugging info
-        debugPrint('===== PASSWORD CHANGE ERROR =====');
-        debugPrint(e.toString());
-        debugPrint('==================================');
       }
     }
   }
@@ -235,50 +242,142 @@ class _SettingPageState extends State<SettingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Pengaturan",
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-        centerTitle: true,
-      ),
+      backgroundColor: backgroundColor,
+      appBar: const CustomAppBar(),
+      drawer: const SideMenu(currentIndex: 3),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadUserData,
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  _buildProfileCard(),
-                  const Gap(20),
-                  _buildSettingsOption(
-                    icon: LucideIcons.user,
-                    title: "Ganti Nama",
-                    subtitle: "Ubah nama pengguna Anda",
-                    onTap: () {
-                      _showEditNameDialog();
-                    },
+          ? Container(
+              color: backgroundColor,
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(strokeWidth: 3),
+                    Gap(16),
+                    Text(
+                      'Memuat pengaturan...',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : FadeTransition(
+              opacity: _fadeAnimation,
+              child: RefreshIndicator(
+                onRefresh: _loadUserData,
+                color: primaryColor,
+                backgroundColor: Colors.white,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Profile Section
+                      Text(
+                        'Profil',
+                        style: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const Gap(12),
+                      _buildProfileCard(),
+                      
+                      const Gap(32),
+                      
+                      // Account Section
+                      Text(
+                        'Akun',
+                        style: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const Gap(12),
+                      _buildSettingsCard([
+                        _buildSettingsOption(
+                          icon: LucideIcons.user,
+                          title: "Ganti Nama",
+                          subtitle: "Ubah nama pengguna Anda",
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            _showEditNameDialog();
+                          },
+                        ),
+                        _buildDivider(),
+                        _buildSettingsOption(
+                          icon: LucideIcons.shieldCheck,
+                          title: "Keamanan",
+                          subtitle: "Ubah kata sandi",
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            _showChangePasswordDialog();
+                          },
+                        ),
+                      ]),
+                      
+                      const Gap(24),
+                      
+                      // Preferences Section
+                      Text(
+                        'Preferensi',
+                        style: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const Gap(12),
+                      _buildSettingsCard([
+                        _buildNotificationSwitch(),
+                      ]),
+                      
+                      const Gap(24),
+                      
+                      // Support Section
+                      Text(
+                        'Dukungan',
+                        style: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const Gap(12),
+                      _buildSettingsCard([
+                        _buildSettingsOption(
+                          icon: LucideIcons.helpCircle,
+                          title: "Tentang Kami",
+                          subtitle: "Kunjungi website resmi",
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            _launchURL();
+                          },
+                        ),
+                        _buildDivider(),
+                        _buildSettingsOption(
+                          icon: LucideIcons.logOut,
+                          title: "Keluar",
+                          subtitle: "Keluar dari akun Anda",
+                          onTap: () {
+                            HapticFeedback.mediumImpact();
+                            _showLogoutDialog();
+                          },
+                          isDestructive: true,
+                        ),
+                      ]),
+                      
+                      const Gap(40),
+                    ],
                   ),
-                  _buildNotificationSwitch(),
-                  _buildSettingsOption(
-                    icon: LucideIcons.shieldCheck,
-                    title: "Keamanan",
-                    subtitle: "Ubah kata sandi",
-                    onTap: () {
-                      _showChangePasswordDialog();
-                    },
-                  ),
-                  _buildSettingsOption(
-                    icon: LucideIcons.helpCircle,
-                    title: "Tentang Kami",
-                    subtitle: "Kunjungi website resmi",
-                    onTap: _launchURL,
-                  ),
-                  _buildSettingsOption(
-                    icon: LucideIcons.logOut,
-                    title: "Keluar",
-                    subtitle: "Keluar dari akun Anda",
-                    onTap: () => _showLogoutDialog(),
-                  ),
-                ],
+                ),
               ),
             ),
     );
@@ -286,59 +385,141 @@ class _SettingPageState extends State<SettingPage> {
 
   Widget _buildProfileCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 5)],
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            offset: const Offset(0, 4),
+            blurRadius: 16,
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Row(
         children: [
           GestureDetector(
             onTap: _pickImage,
-            child: Stack(
-              children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundImage: _selectedImage != null
-                      ? FileImage(_selectedImage!)
-                      : _profilePictureUrl != null
-                          ? NetworkImage(_profilePictureUrl!) as ImageProvider
-                          : const AssetImage("assets/profile.jpg")
-                              as ImageProvider,
-                ),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: primaryColor,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      LucideIcons.pencil,
-                      size: 16,
-                      color: Colors.white,
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    offset: const Offset(0, 4),
+                    blurRadius: 12,
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Colors.grey.shade100,
+                    backgroundImage: _selectedImage != null
+                        ? FileImage(_selectedImage!)
+                        : _profilePictureUrl != null
+                            ? NetworkImage(_profilePictureUrl!) as ImageProvider
+                            : const AssetImage("assets/profile.jpg")
+                                as ImageProvider,
+                    child: _profilePictureUrl == null && _selectedImage == null
+                        ? Icon(
+                            LucideIcons.user,
+                            size: 32,
+                            color: Colors.grey.shade600,
+                          )
+                        : null,
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: primaryColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            offset: const Offset(0, 2),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        LucideIcons.camera,
+                        size: 14,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-          const Gap(16),
+          const Gap(20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_userName,
-                    style: GoogleFonts.inter(
-                        fontSize: 18, fontWeight: FontWeight.w700),
-                    overflow: TextOverflow.ellipsis),
-                Text(_userEmail,
-                    style: GoogleFonts.inter(
-                        color: blackColor.withValues(alpha: 0.5)),
-                    overflow: TextOverflow.ellipsis),
+                Text(
+                  _userName,
+                  style: GoogleFonts.inter(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const Gap(4),
+                Text(
+                  _userEmail,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const Gap(8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.green.shade200,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        LucideIcons.checkCircle,
+                        size: 12,
+                        color: Colors.green.shade600,
+                      ),
+                      const Gap(4),
+                      Text(
+                        'Akun Aktif',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -347,41 +528,153 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
-  Widget _buildSettingsOption(
-      {required IconData icon,
-      required String title,
-      required String subtitle,
-      required VoidCallback onTap}) {
-    return ListTile(
-      leading: Icon(icon, color: primaryColor),
-      title: Text(title,
-          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500)),
-      subtitle: Text(subtitle,
-          style: GoogleFonts.inter(
-              fontSize: 14, color: blackColor.withValues(alpha: 0.5))),
-      trailing: Icon(Icons.arrow_forward_ios,
-          size: 16, color: blackColor.withValues(alpha: 0.5)),
-      onTap: onTap,
+  Widget _buildSettingsCard(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            offset: const Offset(0, 2),
+            blurRadius: 12,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildSettingsOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isDestructive 
+                      ? Colors.red.shade50 
+                      : primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: isDestructive ? Colors.red.shade600 : primaryColor,
+                  size: 20,
+                ),
+              ),
+              const Gap(16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isDestructive 
+                            ? Colors.red.shade600 
+                            : Colors.black87,
+                      ),
+                    ),
+                    const Gap(2),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                LucideIcons.chevronRight,
+                size: 18,
+                color: Colors.grey.shade400,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildNotificationSwitch() {
-    return ListTile(
-      leading: Icon(LucideIcons.bell, color: primaryColor),
-      title: Text("Notifikasi",
-          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500)),
-      subtitle: Text("Atur preferensi notifikasi",
-          style: GoogleFonts.inter(
-              fontSize: 14, color: blackColor.withValues(alpha: 0.5))),
-      trailing: Switch(
-        activeColor: primaryColor,
-        value: _notificationsEnabled,
-        onChanged: (value) {
-          setState(() {
-            _notificationsEnabled = value;
-          });
-        },
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              LucideIcons.bell,
+              color: primaryColor,
+              size: 20,
+            ),
+          ),
+          const Gap(16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Notifikasi",
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const Gap(2),
+                Text(
+                  "Atur preferensi notifikasi",
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            activeColor: primaryColor,
+            value: _notificationsEnabled,
+            onChanged: (value) {
+              HapticFeedback.selectionClick();
+              setState(() {
+                _notificationsEnabled = value;
+              });
+            },
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      height: 1,
+      color: Colors.grey.shade100,
     );
   }
 
@@ -391,29 +684,71 @@ class _SettingPageState extends State<SettingPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          "Ganti Nama",
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                LucideIcons.user,
+                color: primaryColor,
+                size: 20,
+              ),
+            ),
+            const Gap(12),
+            Text(
+              "Ganti Nama",
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+              ),
+            ),
+          ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
+              style: GoogleFonts.inter(),
               decoration: InputDecoration(
                 labelText: "Nama",
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                labelStyle: GoogleFonts.inter(color: Colors.grey.shade600),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: primaryColor),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
               ),
             ),
           ],
         ),
+        actionsPadding: const EdgeInsets.all(16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("Batal",
-                style: TextStyle(color: blackColor.withValues(alpha: 0.7))),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: Text(
+              "Batal",
+              style: GoogleFonts.inter(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -428,8 +763,18 @@ class _SettingPageState extends State<SettingPage> {
               Navigator.pop(context);
               _updateProfile(nameController.text, null);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-            child: const Text("Simpan"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: Text(
+              "Simpan",
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
@@ -448,82 +793,85 @@ class _SettingPageState extends State<SettingPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(
-            "Ubah Kata Sandi",
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  LucideIcons.shieldCheck,
+                  color: primaryColor,
+                  size: 20,
+                ),
+              ),
+              const Gap(12),
+              Text(
+                "Ubah Kata Sandi",
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
+              ),
+            ],
           ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
+                _buildPasswordField(
                   controller: currentPwController,
-                  obscureText: obscureCurrentPw,
-                  decoration: InputDecoration(
-                    labelText: "Kata Sandi Saat Ini",
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscureCurrentPw ? LucideIcons.eyeOff : LucideIcons.eye,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          obscureCurrentPw = !obscureCurrentPw;
-                        });
-                      },
-                    ),
-                  ),
+                  label: "Kata Sandi Saat Ini",
+                  isObscured: obscureCurrentPw,
+                  onToggleObscure: () {
+                    setState(() {
+                      obscureCurrentPw = !obscureCurrentPw;
+                    });
+                  },
                 ),
-                const Gap(12),
-                TextField(
+                const Gap(16),
+                _buildPasswordField(
                   controller: newPwController,
-                  obscureText: obscureNewPw,
-                  decoration: InputDecoration(
-                    labelText: "Kata Sandi Baru",
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscureNewPw ? LucideIcons.eyeOff : LucideIcons.eye,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          obscureNewPw = !obscureNewPw;
-                        });
-                      },
-                    ),
-                  ),
+                  label: "Kata Sandi Baru",
+                  isObscured: obscureNewPw,
+                  onToggleObscure: () {
+                    setState(() {
+                      obscureNewPw = !obscureNewPw;
+                    });
+                  },
                 ),
-                const Gap(12),
-                TextField(
+                const Gap(16),
+                _buildPasswordField(
                   controller: confirmPwController,
-                  obscureText: obscureConfirmPw,
-                  decoration: InputDecoration(
-                    labelText: "Konfirmasi Kata Sandi",
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscureConfirmPw ? LucideIcons.eyeOff : LucideIcons.eye,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          obscureConfirmPw = !obscureConfirmPw;
-                        });
-                      },
-                    ),
-                  ),
+                  label: "Konfirmasi Kata Sandi",
+                  isObscured: obscureConfirmPw,
+                  onToggleObscure: () {
+                    setState(() {
+                      obscureConfirmPw = !obscureConfirmPw;
+                    });
+                  },
                 ),
               ],
             ),
           ),
+          actionsPadding: const EdgeInsets.all(16),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("Batal",
-                  style: TextStyle(color: blackColor.withValues(alpha: 0.7))),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: Text(
+                "Batal",
+                style: GoogleFonts.inter(
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
@@ -542,10 +890,57 @@ class _SettingPageState extends State<SettingPage> {
                 _changePassword(currentPwController.text, newPwController.text,
                     confirmPwController.text);
               },
-              style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
-              child: const Text("Simpan"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: Text(
+                "Simpan",
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String label,
+    required bool isObscured,
+    required VoidCallback onToggleObscure,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: isObscured,
+      style: GoogleFonts.inter(),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.inter(color: Colors.grey.shade600),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: primaryColor),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            isObscured ? LucideIcons.eyeOff : LucideIcons.eye,
+            color: Colors.grey.shade600,
+            size: 20,
+          ),
+          onPressed: onToggleObscure,
         ),
       ),
     );

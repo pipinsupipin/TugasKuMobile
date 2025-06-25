@@ -5,7 +5,7 @@ import 'package:tugasku/models/kategori.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  final String baseUrl = 'http://localhost:8000/api';
+  final String baseUrl = 'https://tugas-ku.cloud/api';
 
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -24,11 +24,11 @@ class ApiService {
 
   // Mendapatkan semua kategori tugas
   Future<List<Kategori>> getKategoriTugas() async {
-    final response =
-        await http.get(Uri.parse('$baseUrl/kategori'), 
-        headers: await _getHeaders(),
-      );
-        
+    final response = await http.get(
+      Uri.parse('$baseUrl/kategori'),
+      headers: await _getHeaders(),
+    );
+
     if (response.statusCode == 200) {
       final body = jsonDecode(response.body);
 
@@ -175,6 +175,85 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Error: $e');
+    }
+  }
+
+  // Add Kategori
+  Future<Map<String, dynamic>> createKategori(String namaKategori) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/kategori'),
+        headers: await _getHeaders(),
+        body: jsonEncode({"nama_kategori": namaKategori}),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        return {
+          "success": true,
+          "message": responseData['message'] ?? "Kategori berhasil dibuat",
+          "data": responseData['data']
+        };
+      } else {
+        final errorData = jsonDecode(response.body);
+        return {
+          "success": false,
+          "message": errorData['message'] ?? "Gagal menambahkan kategori"
+        };
+      }
+    } catch (e) {
+      return {"success": false, "message": "Error saat menambah kategori: $e"};
+    }
+  }
+
+  Future<Map<String, dynamic>> updateKategori(int kategoriId, String namaKategori) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/kategori/$kategoriId'),
+        headers: await _getHeaders(),
+        body: jsonEncode({"nama_kategori": namaKategori}),
+      );
+      
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        return {
+          "success": true,
+          "message": responseData['message'] ?? "Kategori berhasil diperbarui",
+          "data": responseData['data']
+        };
+      } else {
+        final errorData = jsonDecode(response.body);
+        return {
+          "success": false,
+          "message": errorData['message'] ?? "Gagal memperbarui kategori"
+        };
+      }
+    } catch (e) {
+      return {"success": false, "message": "Error saat memperbarui kategori: $e"};
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteKategori(int kategoriId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/kategori/$kategoriId'),
+        headers: await _getHeaders(),
+      );
+      
+      if (response.statusCode == 200) {
+        return {
+          "success": true,
+          "message": "Kategori berhasil dihapus"
+        };
+      } else {
+        final errorData = jsonDecode(response.body);
+        return {
+          "success": false,
+          "message": errorData['message'] ?? "Gagal menghapus kategori"
+        };
+      }
+    } catch (e) {
+      return {"success": false, "message": "Error saat menghapus kategori: $e"};
     }
   }
 }

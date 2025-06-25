@@ -6,6 +6,7 @@ import 'package:tugasku/constants.dart';
 import 'package:tugasku/pages/auth/login_page.dart';
 import 'package:tugasku/pages/onboarding/on_boarding_page.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:tugasku/pages/onboarding/splash.dart';
 import 'package:tugasku/widgets/common/bottom_tab_bar.dart';
 
 int introduction = 0;
@@ -59,11 +60,14 @@ class MyApp extends StatelessWidget {
       ),
       title: 'TugasKu',
       debugShowCheckedModeBanner: false,
-      home: introduction == 0
-          ? const OnBoardingPage()
-          : isLoggedIn
-              ? BottomTabBar(selectedIndex: 0)
-              : const LoginPage(),
+      // Ganti bagian ini aja:
+      home: SplashScreen(
+        nextScreen: introduction == 0
+            ? const OnBoardingPage()
+            : isLoggedIn
+                ? BottomTabBar(selectedIndex: 0)
+                : const LoginPage(),
+      ),
     );
   }
 }
